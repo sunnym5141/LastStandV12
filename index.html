@@ -1,28 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>Last Stand – Mongol Surge Edition</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Last Stand – Working Demo</title>
 <style>
-html,body{margin:0;padding:0;background:#0f141a;overflow:hidden;}
-canvas{display:block;margin:0 auto;background:#0f141a;touch-action:none;}
+html,body{margin:0;padding:0;background:#000;color:#fff;overflow:hidden}
+canvas{display:block;margin:auto;background:#111;touch-action:none}
 </style>
 </head>
 <body>
 <canvas id="game" width="720" height="1280"></canvas>
 <script>
-const W=720,H=1280,c=document.getElementById("game"),x=c.getContext("2d");
-let scene="title",sel=[],touch=null;window.addEventListener("pointerdown",e=>touch={x:e.offsetX,y:e.offsetY});window.addEventListener("pointerup",()=>touch=null);
-function box(a,b,w,h,f,s){x.fillStyle=f;x.fillRect(a,b,w,h);if(s){x.strokeStyle=s;x.strokeRect(a,b,w,h);}}
-function txt(t,a,b,s,c){x.fillStyle=c;x.font=`${s}px sans-serif`;x.textAlign="center";x.fillText(t,a,b);}
-const F=[{k:"mongols",g:"🏇",hp:12,d:3.5,m:120,r:90},{k:"navy",g:"🦭",hp:18,d:4.6,m:90,r:200},{k:"gorillas",g:"🦍",hp:30,d:12,m:80,r:35},{k:"rats",g:"🐀",hp:1,d:.3,m:140,r:10},{k:"civ",g:"🧍",hp:3,d:.3,m:40,r:20}];
-function btn(a,b,w,h,t,en=true){box(a,b,w,h,en?"#1e2b33":"#333","#000");txt(t,a+w/2,b+h/2+8,24,"#fff");if(touch&&en&&touch.x>a&&touch.x<a+w&&touch.y>b&&touch.y<b+h){touch=null;return !0}}
-let sim=null;
-function startBattle(){sim=newSim(sel);scene="battle";}
-function newSim(s){let u=[];for(let i=0;i<s.length;i++){u.push({x:W/2+(i?-100:100),y:400,t:"P",...F.find(f=>f.k===s[i])});}for(let i=0;i<150;i++){u.push({x:Math.random()*W,y:700+Math.random()*500,t:"E",...F[Math.floor(Math.random()*F.length)]});}
-return{tick(dt){for(const a of u){const e=u.find(v=>v.t!==a.t);if(!e)continue;const ang=Math.atan2(e.y-a.y,e.x-a.x)+(a.k==="rats"?(Math.random()-.5)*.6:0);a.x+=Math.cos(ang)*a.m*dt/1000;a.y+=Math.sin(ang)*a.m*dt/1000;if(Math.hypot(e.x-a.x,e.y-a.y)<a.r)e.hp-=a.d;}u=u.filter(q=>q.hp>0);if(u.every(q=>q.t==="P")||u.every(q=>q.t==="E"))scene="title";},draw(){for(const a of u){x.font="28px serif";x.textAlign="center";x.fillText(a.g,a.x,a.y+9);}}}}
-let last=0;function loop(t){const dt=t-last;last=t;box(0,0,W,H,"#0f141a");if(scene==="title"){txt("Last Stand",W/2,500,60,"#fff");if(btn(210,800,300,90,"Start"))scene="pick";}else if(scene==="pick"){txt("Choose 2 Armies",W/2,150,32,"#fff");let i=0;for(const a of F){const X=140+240*(i%3),Y=350+200*Math.floor(i/3);box(X-70,Y-70,140,140,"#1e2b33");x.font="48px serif";x.textAlign="center";x.fillText(a.g,X,Y+20);if(sel.includes(a.k)){x.strokeStyle="#ffd76b";x.lineWidth=3;x.strokeRect(X-68,Y-68,136,136);}if(touch&&touch.x>X-70&&touch.x<X+70&&touch.y>Y-70&&touch.y<Y+70){touch=null;sel.includes(a.k)?sel=sel.filter(k=>k!==a.k):sel.length<2&&sel.push(a.k);}i++;}if(btn(150,1080,420,80,"Start Battle",sel.length===2))startBattle();}else if(scene==="battle"){sim.tick(dt);sim.draw();}requestAnimationFrame(loop);}requestAnimationFrame(loop);
+const W=720,H=1280,cv=document.getElementById("game"),ctx=cv.getContext("2d");
+let scene="title",touch=null,units=[];
+window.addEventListener("pointerdown",e=>touch={x:e.offsetX,y:e.offsetY});
+window.addEventListener("pointerup",()=>touch=null);
+
+function btn(x,y,w,h,label){
+  ctx.fillStyle="#222";ctx.fillRect(x,y,w,h);
+  ctx.strokeStyle="#555";ctx.strokeRect(x,y,w,h);
+  ctx.fillStyle="#fff";ctx.font="28px sans-serif";ctx.textAlign="center";
+  ctx.fillText(label,x+w/2,y+h/2+10);
+  if(touch&&touch.x>x&&touch.x<x+w&&touch.y>y&&touch.y<y+h){touch=null;return true}
+  return false;
+}
+
+function startBattle(){
+  units=[];
+  for(let i=0;i<20;i++)units.push({x:Math.random()*W,y:Math.random()*600+300,dx:Math.random()*2-1,dy:Math.random()*2-1,emoji:"🦍"});
+  for(let i=0;i<40;i++)units.push({x:Math.random()*W,y:Math.random()*600+300,dx:Math.random()*2-1,dy:Math.random()*2-1,emoji:"🐀"});
+  scene="battle";
+}
+
+function drawTitle(){
+  ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#fff";ctx.font="64px sans-serif";ctx.textAlign="center";
+  ctx.fillText("Last Stand",W/2,500);
+  if(btn(210,800,300,90,"Start"))startBattle();
+}
+
+function drawBattle(dt){
+  ctx.fillStyle="#111";ctx.fillRect(0,0,W,H);
+  for(const u of units){
+    u.x+=u.dx*dt*0.1;u.y+=u.dy*dt*0.1;
+    if(u.x<0||u.x>W)u.dx*=-1;
+    if(u.y<0||u.y>H)u.dy*=-1;
+    ctx.font="32px serif";ctx.fillText(u.emoji,u.x,u.y);
+  }
+  if(btn(250,1150,220,70,"Restart"))scene="title";
+}
+
+let last=0;
+function loop(t){
+  const dt=t-last;last=t;
+  if(scene==="title")drawTitle();else drawBattle(dt);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
